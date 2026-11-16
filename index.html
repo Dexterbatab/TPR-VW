@@ -53,6 +53,7 @@
     #map { width: 100%; height: 100%; background: #0f172a; }
     .map-night-filter .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
     .map-badge { position: absolute; top: 8px; right: 8px; z-index: 1000; background: rgba(15, 23, 42, 0.85); color: #38bdf8; padding: 4px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: bold; border: 1px solid #334155; }
+    .osrm-badge { position: absolute; bottom: 8px; left: 8px; z-index: 1000; background: rgba(15, 23, 42, 0.88); color: #22c55e; padding: 3px 7px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; border: 1px solid #334155; }
     .bus-icon { font-size: 22px; text-align: center; line-height: 24px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8)); }
     .actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: auto; }
     .btn { background: #22c55e; color: #000; border: none; padding: 13px; font-size: 0.96rem; font-weight: bold; border-radius: 10px; cursor: pointer; }
@@ -127,14 +128,14 @@
       <span class="clock-display">--:--</span>
     </div>
     <div class="sel-group">
-      <select id="paradaSelect" onchange="actualizarCalculoHorario()"></select>
+      <select id="paradaSelect" onchange="alCambiarParadaManual()"></select>
       <button class="mini-btn" title="Editar paradero" onclick="editarParaderoSeleccionado()">✏️</button>
       <button class="mini-btn gps" title="Fijar paradero con GPS actual" onclick="fijarParaderoGPS()">📍 Fijar</button>
     </div>
     <div class="inner-display" id="horarioBox">
       <div style="font-size:0.7rem; color:#94a3b8;" id="subtituloMetric">VELOCIDAD REQUERIDA PARA LLEGAR:</div>
       <div class="big-metric" id="reqSpeed">-- km/h</div>
-      <div class="sub-info" id="paceDetail">Inicia recorrido para medir distancia GPS</div>
+      <div class="sub-info" id="paceDetail">Inicia recorrido para medir distancia OSRM</div>
       <div class="auto-tag">Toca un punto en el mapa para editar o arrastrar</div>
     </div>
   </div>
@@ -155,6 +156,7 @@
 
   <div class="map-wrap" id="mapWrap">
     <div class="map-badge" id="mapThemeBadge">Modo Dia</div>
+    <div class="osrm-badge" id="osrmBadge">OSRM: Listo</div>
     <div id="map"></div>
   </div>
 
@@ -213,9 +215,10 @@
       </div>
     </div>
   </div>
-
 <script>
   const STORAGE_KEY = 'teper_catalogo_v4';
+  const TRIP_BACKUP_KEY = 'teper_viaje_activo_v1';
+  const OSRM_BASE_URL = 'https://router.project-osrm.org/route/v1/driving';
 
   const datosPorDefecto = [
     {
@@ -284,6 +287,7 @@
   let metaRendimiento = 4.5;
   let tracking = false;
   let watchId = null;
+  let wakeLock = null;
   let totalDist = 0;
   let lastPos = null;
   let currentPos = null;
@@ -296,10 +300,190 @@
   let busMarker = null;
   let busIcon = null;
   let routeLayer = null;
+  let liveRouteLine = null;
 
   let builderMap = null;
   let builderLayer = null;
   let paradasTemporales = [];
+
+  let osrmKmTiempoReal = null;
+  let osrmParadaIdxCache = -1;
+  let ultimaConsultaOsrmTs = 0;
+  let ultimaPosConsultaOsrm = null;
+  let consultandoOsrm = false;
+
+  let audioCtx = null;
+  let ultimaAlertaSonoraTs = 0;
+
+  function inicializarAudio() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!audioCtx && AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    } catch (e) {}
+  }
+
+  function sonarAlertaExcesoVelocidad() {
+    const ahora = Date.now();
+    if (ahora - ultimaAlertaSonoraTs < 4000) return;
+    ultimaAlertaSonoraTs = ahora;
+
+    try {
+      inicializarAudio();
+      if (!audioCtx) return;
+
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.setValueAtTime(980, t + 0.16);
+
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.36);
+    } catch (e) {}
+  }
+
+  async function activarPantallaEncendida() {
+    try {
+      if ('wakeLock' in navigator && !wakeLock) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch (e) {}
+  }
+
+  function liberarPantallaEncendida() {
+    if (wakeLock) {
+      wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && tracking) {
+      activarPantallaEncendida();
+    }
+  });
+
+  function guardarEstadoViaje() {
+    localStorage.setItem(TRIP_BACKUP_KEY, JSON.stringify({
+      totalDist,
+      ecoPuntos,
+      segundosDetenidoTotal
+    }));
+  }
+
+  function restaurarEstadoViaje() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(TRIP_BACKUP_KEY));
+      if (saved) {
+        totalDist = saved.totalDist || 0;
+        ecoPuntos = saved.ecoPuntos || 100;
+        segundosDetenidoTotal = saved.segundosDetenidoTotal || 0;
+        document.getElementById('ecoScore').innerText = `${Math.round(ecoPuntos)}% ECO`;
+        const mins = Math.floor(segundosDetenidoTotal / 60);
+        document.getElementById('idleCounter').innerText = `Tiempo detenido acumulado: ${mins} min`;
+      }
+    } catch (e) {}
+  }
+
+  function actualizarBadgeOsrm(texto, color = '#22c55e') {
+    const badge = document.getElementById('osrmBadge');
+    if (badge) {
+      badge.innerText = texto;
+      badge.style.color = color;
+    }
+  }
+
+  async function consultarRutaCompletaOSRM(puntos) {
+    if (!puntos || puntos.length < 2) return null;
+    try {
+      const coordsStr = puntos.map(p => `${p.lon},${p.lat}`).join(';');
+      const url = `${OSRM_BASE_URL}/${coordsStr}?overview=full&geometries=geojson`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Error HTTP OSRM');
+      const data = await resp.json();
+      if (data.code !== 'Ok' || !data.routes || !data.routes[0]) return null;
+      return data.routes[0];
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async function actualizarDistanciaOSRMTiempoReal(forzar = false) {
+    if (modoUrbano || !currentPos) return;
+    const { turno } = obtenerTurnoActual();
+    const idx = parseInt(document.getElementById('paradaSelect').value) || 0;
+    const parada = turno.paradas[idx];
+    if (!parada || idx === 0) {
+      osrmKmTiempoReal = null;
+      if (liveRouteLine && map) {
+        map.removeLayer(liveRouteLine);
+        liveRouteLine = null;
+      }
+      return;
+    }
+
+    const ahora = Date.now();
+    const distDesdeUltimaConsulta = ultimaPosConsultaOsrm
+      ? calcularDistancia(ultimaPosConsultaOsrm.lat, ultimaPosConsultaOsrm.lon, currentPos.lat, currentPos.lon)
+      : 999;
+
+    if (!forzar && consultandoOsrm) return;
+    if (!forzar && idx === osrmParadaIdxCache && (ahora - ultimaConsultaOsrmTs < 12000) && distDesdeUltimaConsulta < 0.15) {
+      return;
+    }
+
+    consultandoOsrm = true;
+    actualizarBadgeOsrm('OSRM: Calculando...', '#eab308');
+
+    try {
+      const url = `${OSRM_BASE_URL}/${currentPos.lon},${currentPos.lat};${parada.lon},${parada.lat}?overview=full&geometries=geojson`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Error OSRM');
+      const data = await resp.json();
+
+      if (data.code === 'Ok' && data.routes && data.routes[0]) {
+        const ruta = data.routes[0];
+        osrmKmTiempoReal = +(ruta.distance / 1000).toFixed(2);
+        osrmParadaIdxCache = idx;
+        ultimaConsultaOsrmTs = Date.now();
+        ultimaPosConsultaOsrm = { ...currentPos };
+
+        if (map && ruta.geometry && ruta.geometry.coordinates) {
+          const latLngs = ruta.geometry.coordinates.map(c => [c[1], c[0]]);
+          if (liveRouteLine) map.removeLayer(liveRouteLine);
+          liveRouteLine = L.polyline(latLngs, {
+            color: '#22c55e',
+            weight: 5,
+            opacity: 0.9,
+            dashArray: '8, 6'
+          }).addTo(map);
+        }
+
+        actualizarBadgeOsrm(`OSRM: ${osrmKmTiempoReal.toFixed(1)} km`, '#22c55e');
+        const velActual = parseInt(document.getElementById('speed').innerText) || 0;
+        actualizarCalculoHorario(velActual);
+      } else {
+        throw new Error('Sin ruta OSRM');
+      }
+    } catch (e) {
+      osrmKmTiempoReal = null;
+      actualizarBadgeOsrm('OSRM: Offline (Respaldo)', '#f97316');
+    } finally {
+      consultandoOsrm = false;
+    }
+  }
 
   function guardarCatalogoLocal() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(catalogo));
@@ -316,12 +500,10 @@
           catalogo = importado;
           guardarCatalogoLocal();
           window.history.replaceState({}, document.title, window.location.pathname);
-          alert("✅ ¡Rutas compartidas cargadas automáticamente!");
+          alert("Rutas compartidas cargadas automaticamente.");
           return;
         }
-      } catch (e) {
-        console.error("Error importando enlace:", e);
-      }
+      } catch (e) {}
     }
 
     const guardado = localStorage.getItem(STORAGE_KEY);
@@ -397,8 +579,24 @@
     return { empresa, ruta, turno };
   }
 
+  function alCambiarParadaManual() {
+    osrmKmTiempoReal = null;
+    osrmParadaIdxCache = -1;
+    actualizarCalculoHorario();
+    if (tracking && currentPos) {
+      actualizarDistanciaOSRMTiempoReal(true);
+    }
+  }
+
   function alCambiarTurno(paradaKeep = null) {
     modoUrbano = false;
+    osrmKmTiempoReal = null;
+    osrmParadaIdxCache = -1;
+    if (liveRouteLine && map) {
+      map.removeLayer(liveRouteLine);
+      liveRouteLine = null;
+    }
+
     document.getElementById('btnEcoLocal').classList.remove('active');
     document.getElementById('panelHorario').style.display = 'block';
     document.getElementById('panelCiudad').style.display = 'none';
@@ -429,6 +627,9 @@
     dibujarRutaEnMapa(turno.paradas);
     actualizarCalculoHorario();
     actualizarTotales();
+    if (tracking && currentPos) {
+      actualizarDistanciaOSRMTiempoReal(true);
+    }
   }
 
   function editarEmpresa() {
@@ -460,10 +661,7 @@
     const turno = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx];
     const nuevoNombre = prompt("Nuevo nombre para el turno:", turno.nombre);
     if (!nuevoNombre || !nuevoNombre.trim()) return;
-    const esSalida = confirm(`¿Este turno funciona como SALIDA (tope económico 72 km/h)?
-
-Aceptar = SALIDA
-Cancelar = ENTRADA (con hora meta)`);
+    const esSalida = confirm("Este turno funciona como SALIDA (tope economico 72 km/h)?\n\nAceptar = SALIDA\nCancelar = ENTRADA (con hora meta)");
     turno.nombre = nuevoNombre.trim();
     turno.tipo = esSalida ? 'salida' : 'entrada';
     guardarCatalogoLocal();
@@ -475,7 +673,7 @@ Cancelar = ENTRADA (con hora meta)`);
     const ruta = catalogo[empIdx].rutas[rutaIdx];
     const turno = ruta.turnos[turnoIdx];
 
-    if (!confirm(`¿Eliminar "${turno.nombre}"?`)) return;
+    if (!confirm(`Eliminar "${turno.nombre}"?`)) return;
 
     ruta.turnos.splice(turnoIdx, 1);
     if (ruta.turnos.length === 0) {
@@ -513,25 +711,32 @@ Cancelar = ENTRADA (con hora meta)`);
     editarParaderoPorIndice(pIdx);
   }
 
-  function eliminarParaderoPorIndice(pIdx) {
+  async function eliminarParaderoPorIndice(pIdx) {
     const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const paradas = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx].paradas;
     if (paradas.length <= 2) {
       alert("La ruta debe tener al menos 2 paraderos.");
       return;
     }
-    if (!confirm(`¿Eliminar el paradero "${paradas[pIdx].nombre}"?`)) return;
+    if (!confirm(`Eliminar el paradero "${paradas[pIdx].nombre}"?`)) return;
     paradas.splice(pIdx, 1);
-    recalcularKmFijos(paradas);
+    await recalcularKmFijos(paradas);
     guardarCatalogoLocal();
     alCambiarTurno(Math.max(0, pIdx - 1));
   }
 
-  function recalcularKmFijos(paradas) {
-    for (let i = 0; i < paradas.length; i++) {
-      if (i === 0) {
-        paradas[i].kmFijo = 0;
-      } else {
+  async function recalcularKmFijos(paradas) {
+    if (!paradas || paradas.length === 0) return;
+    paradas[0].kmFijo = 0;
+    if (paradas.length < 2) return;
+
+    const rutaOsrm = await consultarRutaCompletaOSRM(paradas);
+    if (rutaOsrm && rutaOsrm.legs && rutaOsrm.legs.length === paradas.length - 1) {
+      for (let i = 1; i < paradas.length; i++) {
+        paradas[i].kmFijo = +(rutaOsrm.legs[i - 1].distance / 1000).toFixed(1);
+      }
+    } else {
+      for (let i = 1; i < paradas.length; i++) {
         paradas[i].kmFijo = +(calcularDistancia(paradas[i - 1].lat, paradas[i - 1].lon, paradas[i].lat, paradas[i].lon) * 1.15).toFixed(1);
       }
     }
@@ -552,14 +757,13 @@ Cancelar = ENTRADA (con hora meta)`);
     status.innerText = "OBTENIENDO UBICACION GPS DEL PARADERO...";
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         status.innerText = prevStatus;
         const lat = +pos.coords.latitude.toFixed(6);
         const lon = +pos.coords.longitude.toFixed(6);
         const horaAuto = horaActualHHMM();
 
-        const nombre = prompt(`📍 Ubicación capturada (${horaAuto})
-Escribe un nombre corto para este paradero:`);
+        const nombre = prompt(`Ubicacion capturada (${horaAuto})\nEscribe un nombre corto para este paradero:`);
         if (!nombre || !nombre.trim()) return;
 
         const horaFinal = prompt("Confirma o ajusta la hora meta (formato 24h):", horaAuto) || horaAuto;
@@ -574,14 +778,14 @@ Escribe un nombre corto para este paradero:`);
           lon,
           kmFijo: 0
         });
-        recalcularKmFijos(paradas);
+        await recalcularKmFijos(paradas);
         guardarCatalogoLocal();
         alCambiarTurno(paradas.length - 1);
-        alert(`✅ Paradero "${nombre.trim()}" guardado en tu posición actual.`);
+        alert(`Paradero "${nombre.trim()}" guardado en tu posicion actual.`);
       },
       (err) => {
         status.innerText = prevStatus;
-        alert("No se pudo obtener el GPS. Verifica que la ubicación esté encendida.");
+        alert("No se pudo obtener el GPS. Verifica que la ubicacion este encendida.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -593,12 +797,11 @@ Escribe un nombre corto para este paradero:`);
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const lat = +pos.coords.latitude.toFixed(6);
         const lon = +pos.coords.longitude.toFixed(6);
         const horaAuto = horaActualHHMM();
-        const nombre = prompt(`📍 GPS capturado (${horaAuto})
-Nombre de esta parada:`);
+        const nombre = prompt(`GPS capturado (${horaAuto})\nNombre de esta parada:`);
         if (!nombre || !nombre.trim()) return;
         const hora = prompt("Hora meta de llegada (formato 24h):", horaAuto) || horaAuto;
 
@@ -609,11 +812,11 @@ Nombre de esta parada:`);
           lon,
           kmFijo: 0
         });
-        recalcularKmFijos(paradasTemporales);
+        await recalcularKmFijos(paradasTemporales);
         renderizarListaParadas();
         if (builderMap) builderMap.setView([lat, lon], 14);
       },
-      () => alert("Activa el GPS para capturar tu posición."),
+      () => alert("Activa el GPS para capturar tu posicion."),
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
@@ -628,6 +831,10 @@ Nombre de esta parada:`);
       metaRendimiento = 4.2;
       document.getElementById('headerMeta').innerText = "TEPER VW 15.190 | Urbano: 4.2 km/L";
       document.getElementById('fuelLbl').innerText = "LITROS (4.2 KM/L)";
+      if (liveRouteLine && map) {
+        map.removeLayer(liveRouteLine);
+        liveRouteLine = null;
+      }
     } else {
       alCambiarTurno();
     }
@@ -655,21 +862,21 @@ Nombre de esta parada:`);
     setTimeout(() => map.invalidateSize(), 400);
   }
 
-  function dibujarRutaEnMapa(paradas) {
+  async function dibujarRutaEnMapa(paradas) {
     if (!map || !routeLayer) return;
     routeLayer.clearLayers();
     if (!paradas || paradas.length === 0) return;
 
-    const coords = paradas.map(p => [p.lat, p.lon]);
-    const poly = L.polyline(coords, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(routeLayer);
+    const coordsRectas = paradas.map(p => [p.lat, p.lon]);
+    let poly = L.polyline(coordsRectas, { color: '#38bdf8', weight: 4, opacity: 0.55, dashArray: '5, 5' }).addTo(routeLayer);
 
     paradas.forEach((p, idx) => {
       const esExtremo = idx === 0 || idx === paradas.length - 1;
       const pinIcon = L.divIcon({
         html: `<div style="width:14px;height:14px;border-radius:50%;background:${esExtremo ? '#22c55e' : '#38bdf8'};border:2px solid #0f172a;box-shadow:0 0 4px #000;"></div>`,
         className: '',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
       });
 
       const marker = L.marker([p.lat, p.lon], { icon: pinIcon, draggable: true }).addTo(routeLayer);
@@ -677,27 +884,45 @@ Nombre de esta parada:`);
         <div style="min-width:140px;color:#0f172a;">
           <b>${idx + 1}. ${p.nombre}</b><br>
           Hora: ${p.hora || '--:--'}<br>
+          Dist. tramo: ${p.kmFijo} km<br>
           <small style="color:#475569;">(Arrastra el punto para mover)</small>
-          <button class="popup-btn" onclick="editarParaderoPorIndice(${idx})">✏️ Editar Nombre/Hora</button>
-          <button class="popup-btn red" onclick="eliminarParaderoPorIndice(${idx})">🗑️ Eliminar Paradero</button>
+          <button class="popup-btn" onclick="editarParaderoPorIndice(${idx})">Editar Nombre/Hora</button>
+          <button class="popup-btn red" onclick="eliminarParaderoPorIndice(${idx})">Eliminar Paradero</button>
         </div>
       `);
 
-      marker.on('dragend', (e) => {
+      marker.on('dragend', async (e) => {
         const pos = e.target.getLatLng();
         const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
         const lista = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx].paradas;
         lista[idx].lat = +pos.lat.toFixed(6);
         lista[idx].lon = +pos.lng.toFixed(6);
-        recalcularKmFijos(lista);
+        await recalcularKmFijos(lista);
         guardarCatalogoLocal();
         dibujarRutaEnMapa(lista);
         actualizarCalculoHorario();
+        if (tracking && currentPos) actualizarDistanciaOSRMTiempoReal(true);
       });
     });
 
-    if (!tracking && coords.length > 0) {
+    if (!tracking && coordsRectas.length > 0) {
       map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+    }
+
+    if (paradas.length >= 2) {
+      actualizarBadgeOsrm('OSRM: Trazando ruta...', '#eab308');
+      const rutaOsrm = await consultarRutaCompletaOSRM(paradas);
+      if (rutaOsrm && rutaOsrm.geometry && rutaOsrm.geometry.coordinates) {
+        routeLayer.removeLayer(poly);
+        const coordsCarretera = rutaOsrm.geometry.coordinates.map(c => [c[1], c[0]]);
+        poly = L.polyline(coordsCarretera, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(routeLayer);
+        if (!tracking) {
+          map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+        }
+        actualizarBadgeOsrm('OSRM: Ruta Lista', '#22c55e');
+      } else {
+        actualizarBadgeOsrm('OSRM: Offline (Respaldo)', '#f97316');
+      }
     }
   }
 
@@ -722,6 +947,7 @@ Nombre de esta parada:`);
     const litrosPorDistancia = totalDist / rendimientoReal;
     const litrosRalenti = (segundosDetenidoTotal / 3600) * 1.6;
     document.getElementById('fuel').innerText = (litrosPorDistancia + litrosRalenti).toFixed(2);
+    guardarEstadoViaje();
   }
 
   setInterval(() => {
@@ -791,7 +1017,10 @@ Nombre de esta parada:`);
     const distAParada = calcularDistancia(lat, lon, turno.paradas[idx].lat, turno.paradas[idx].lon);
     if (distAParada < 0.25 && idx < turno.paradas.length - 1) {
       select.value = idx + 1;
+      osrmKmTiempoReal = null;
+      osrmParadaIdxCache = -1;
       actualizarCalculoHorario();
+      actualizarDistanciaOSRMTiempoReal(true);
     }
   }
 
@@ -808,13 +1037,21 @@ Nombre de esta parada:`);
     if (!parada) return;
 
     let kmFaltantes = parada.kmFijo || 0;
+    let etiquetaFuente = "Ruta";
+
     if (currentPos && idx > 0) {
-      kmFaltantes = calcularDistancia(currentPos.lat, currentPos.lon, parada.lat, parada.lon) * 1.15;
+      if (osrmKmTiempoReal !== null && osrmParadaIdxCache === idx) {
+        kmFaltantes = osrmKmTiempoReal;
+        etiquetaFuente = "OSRM";
+      } else {
+        kmFaltantes = calcularDistancia(currentPos.lat, currentPos.lon, parada.lat, parada.lon) * 1.15;
+        etiquetaFuente = "GPS";
+      }
     }
 
     if (turno.tipo === 'salida') {
       subTitle.innerText = "CONTROL ECONOMICO DE SALIDA (TOPE 72 KM/H):";
-      const textoDist = idx === 0 ? `Salida desde ${parada.nombre}` : `Faltan ~${kmFaltantes.toFixed(1)} km a ${parada.nombre}`;
+      const textoDist = idx === 0 ? `Salida desde ${parada.nombre}` : `Faltan ${kmFaltantes.toFixed(1)} km (${etiquetaFuente}) a ${parada.nombre}`;
       if (speedKmh > 72) {
         box.classList.add('danger');
         reqSpeedEl.innerText = `${speedKmh} KM/H - BAJA A 72`;
@@ -851,7 +1088,7 @@ Nombre de esta parada:`);
 
     if (!parada.hora) {
       reqSpeedEl.innerText = `${kmFaltantes.toFixed(1)} km`;
-      detailEl.innerText = `Rumbo a ${parada.nombre}`;
+      detailEl.innerText = `Rumbo a ${parada.nombre} (${etiquetaFuente})`;
       return;
     }
 
@@ -870,7 +1107,7 @@ Nombre de esta parada:`);
     if (minRestantes <= 0) {
       reqSpeedEl.innerText = "HORA CUMPLIDA";
       reqSpeedEl.style.color = "#ef4444";
-      detailEl.innerText = `Meta ${parada.hora} | Faltan ${kmFaltantes.toFixed(1)} km`;
+      detailEl.innerText = `Meta ${parada.hora} | Faltan ${kmFaltantes.toFixed(1)} km (${etiquetaFuente})`;
       return;
     }
 
@@ -878,7 +1115,7 @@ Nombre de esta parada:`);
     const velNecesaria = Math.round(kmFaltantes / horasRestantes);
 
     reqSpeedEl.innerText = `${velNecesaria} km/h`;
-    detailEl.innerText = `Faltan ${kmFaltantes.toFixed(1)} km en ${minRestantes} min (Meta: ${parada.hora})`;
+    detailEl.innerText = `Faltan ${kmFaltantes.toFixed(1)} km (${etiquetaFuente}) en ${minRestantes} min (Meta: ${parada.hora})`;
 
     if (velNecesaria <= 72) {
       reqSpeedEl.style.color = "#22c55e";
@@ -910,6 +1147,8 @@ Nombre de esta parada:`);
         return;
       }
       tracking = true;
+      inicializarAudio();
+      activarPantallaEncendida();
       btn.innerText = "Detener Recorrido";
       btn.classList.add("stop");
       status.innerText = "BUSCANDO SENAL GPS...";
@@ -917,12 +1156,16 @@ Nombre de esta parada:`);
 
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          status.innerText = "RECORRIDO EN CURSO (GPS ACTIVO)";
+          status.innerText = "RECORRIDO EN CURSO (GPS + OSRM ACTIVO)";
           status.style.color = "#22c55e";
 
           currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
           const speedKmh = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
           document.getElementById('speed').innerText = speedKmh;
+
+          if (speedKmh > 72) {
+            sonarAlertaExcesoVelocidad();
+          }
 
           if (map) {
             if (!busMarker && busIcon) {
@@ -936,6 +1179,7 @@ Nombre de esta parada:`);
           if (modoUrbano) {
             evaluarManejoCiudad(speedKmh);
           } else {
+            actualizarDistanciaOSRMTiempoReal(false);
             actualizarCalculoHorario(speedKmh);
           }
 
@@ -957,6 +1201,7 @@ Nombre de esta parada:`);
       );
     } else {
       tracking = false;
+      liberarPantallaEncendida();
       navigator.geolocation.clearWatch(watchId);
       btn.innerText = "Iniciar Recorrido";
       btn.classList.remove("stop");
@@ -971,12 +1216,21 @@ Nombre de esta parada:`);
     ecoPuntos = 100;
     segundosDetenidoSeguido = 0;
     segundosDetenidoTotal = 0;
+    osrmKmTiempoReal = null;
+    osrmParadaIdxCache = -1;
+    ultimaPosConsultaOsrm = null;
+    localStorage.removeItem(TRIP_BACKUP_KEY);
+    if (liveRouteLine && map) {
+      map.removeLayer(liveRouteLine);
+      liveRouteLine = null;
+    }
     document.getElementById('speed').innerText = "0";
     document.getElementById('ecoScore').innerText = "100% ECO";
     document.getElementById('ecoStatus').innerText = "LISTO PARA SALIR";
     document.getElementById('ecoStatus').style.color = "#22c55e";
     document.getElementById('idleAlert').style.display = 'none';
     document.getElementById('idleCounter').innerText = "Tiempo detenido acumulado: 0 min";
+    actualizarBadgeOsrm('OSRM: Listo', '#22c55e');
     actualizarCalculoHorario(0);
     actualizarTotales();
   }
@@ -992,7 +1246,7 @@ Nombre de esta parada:`);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(builderMap);
         builderLayer = L.layerGroup().addTo(builderMap);
 
-        builderMap.on('click', (e) => {
+        builderMap.on('click', async (e) => {
           const nombre = prompt("Nombre de esta parada (ej. Halacho, Leoni 2):");
           if (!nombre) return;
           const hora = prompt("Hora meta de llegada (formato 24h, ej. 13:45):", "14:00") || "00:00";
@@ -1003,7 +1257,7 @@ Nombre de esta parada:`);
             lon: +e.latlng.lng.toFixed(6),
             kmFijo: 0
           });
-          recalcularKmFijos(paradasTemporales);
+          await recalcularKmFijos(paradasTemporales);
           renderizarListaParadas();
         });
       } else {
@@ -1017,7 +1271,7 @@ Nombre de esta parada:`);
     document.getElementById('modalGestor').style.display = 'none';
   }
 
-  function renderizarListaParadas() {
+  async function renderizarListaParadas() {
     const cont = document.getElementById('listaParadasNuevas');
     cont.innerHTML = '';
     if (builderLayer) builderLayer.clearLayers();
@@ -1027,11 +1281,11 @@ Nombre de esta parada:`);
       coords.push([p.lat, p.lon]);
       if (builderLayer) {
         const m = L.marker([p.lat, p.lon], { draggable: true }).addTo(builderLayer);
-        m.on('dragend', (e) => {
+        m.on('dragend', async (e) => {
           const pos = e.target.getLatLng();
           paradasTemporales[idx].lat = +pos.lat.toFixed(6);
           paradasTemporales[idx].lon = +pos.lng.toFixed(6);
-          recalcularKmFijos(paradasTemporales);
+          await recalcularKmFijos(paradasTemporales);
           renderizarListaParadas();
         });
       }
@@ -1047,7 +1301,13 @@ Nombre de esta parada:`);
     });
 
     if (builderLayer && coords.length > 1) {
-      L.polyline(coords, { color: '#38bdf8', weight: 3 }).addTo(builderLayer);
+      let lineaTemp = L.polyline(coords, { color: '#38bdf8', weight: 3, dashArray: '4, 4' }).addTo(builderLayer);
+      const rutaOsrm = await consultarRutaCompletaOSRM(paradasTemporales);
+      if (rutaOsrm && rutaOsrm.geometry && rutaOsrm.geometry.coordinates && builderLayer) {
+        builderLayer.removeLayer(lineaTemp);
+        const coordsCarretera = rutaOsrm.geometry.coordinates.map(c => [c[1], c[0]]);
+        L.polyline(coordsCarretera, { color: '#38bdf8', weight: 3 }).addTo(builderLayer);
+      }
     }
   }
 
@@ -1062,9 +1322,9 @@ Nombre de esta parada:`);
     renderizarListaParadas();
   }
 
-  function eliminarParadaTemp(idx) {
+  async function eliminarParadaTemp(idx) {
     paradasTemporales.splice(idx, 1);
-    recalcularKmFijos(paradasTemporales);
+    await recalcularKmFijos(paradasTemporales);
     renderizarListaParadas();
   }
 
@@ -1108,11 +1368,11 @@ Nombre de esta parada:`);
     guardarCatalogoLocal();
     poblarSelectores(empIdx, rutaIdx, turnoIdx);
     cerrarGestor();
-    alert(`✅ Ruta "${rutaNombre} - ${turnoNombre}" guardada en ${empNombre}.`);
+    alert(`Ruta "${rutaNombre} - ${turnoNombre}" guardada en ${empNombre}.`);
   }
 
   function restaurarFabrica() {
-    if (confirm("¿Restaurar las rutas originales de Leoni Planta 2?")) {
+    if (confirm("Restaurar las rutas originales de Leoni Planta 2?")) {
       localStorage.removeItem(STORAGE_KEY);
       cargarCatalogo();
       poblarSelectores(0, 0, 0);
@@ -1126,9 +1386,7 @@ Nombre de esta parada:`);
       const base64Data = btoa(unescape(encodeURIComponent(jsonStr)));
       const urlBase = window.location.origin + window.location.pathname;
       const shareUrl = `${urlBase}?data=${base64Data}`;
-      const texto = `🚌 *App TEPER VW 15.190 - Rutas Actualizadas*
-Toca este enlace para abrir la app con todas las empresas y rutas ya cargadas:
-${shareUrl}`;
+      const texto = `App TEPER VW 15.190 - Rutas Actualizadas\nToca este enlace para abrir la app con todas las empresas y rutas ya cargadas:\n${shareUrl}`;
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
     } catch (e) {
       alert("No se pudo generar el enlace de WhatsApp.");
@@ -1141,6 +1399,7 @@ ${shareUrl}`;
 
   window.addEventListener('load', () => {
     cargarCatalogo();
+    restaurarEstadoViaje();
     poblarSelectores(0, 0, 0);
     actualizarReloj();
     actualizarTemaMapa();
