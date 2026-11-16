@@ -6,7 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0284c7">
-  <title>TEPER VW 15.190 Pro</title>
+  <title>TEPER VW 15.190 Pro - Control de Rutas</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -31,7 +31,7 @@
       gap: 6px;
     }
 
-    h2 { color: #38bdf8; font-size: 0.95rem; margin: 0; }
+    h2 { color: #38bdf8; font-size: 0.92rem; margin: 0; }
 
     .top-tools { display: flex; gap: 6px; }
     .tool-btn {
@@ -48,9 +48,15 @@
 
     .selectors-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1.2fr;
       gap: 6px;
       margin-bottom: 6px;
+    }
+
+    .select-with-edit {
+      display: flex;
+      gap: 4px;
+      align-items: center;
     }
 
     select {
@@ -60,15 +66,46 @@
       background: #0f172a;
       color: #fff;
       border: 1px solid #475569;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       box-sizing: border-box;
+    }
+
+    .btn-mini-edit {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      flex-shrink: 0;
     }
 
     .turno-row {
       display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 6px;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 5px;
       margin-bottom: 8px;
+    }
+
+    .btn-icon-action {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn-del-turno {
+      background: #7f1d1d;
+      color: #fecaca;
+      border: 1px solid #ef4444;
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 0.85rem;
+      cursor: pointer;
     }
 
     .btn-local-toggle {
@@ -76,10 +113,11 @@
       color: #94a3b8;
       border: 1px solid #334155;
       border-radius: 8px;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       font-weight: bold;
       cursor: pointer;
-      padding: 6px;
+      padding: 5px 8px;
+      line-height: 1.15;
     }
     .btn-local-toggle.active {
       background: #0284c7;
@@ -122,7 +160,7 @@
       border: 1px solid #334155;
     }
     .panel-title {
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: #38bdf8;
       font-weight: bold;
       margin-bottom: 6px;
@@ -135,6 +173,7 @@
       border-radius: 8px;
       text-align: center;
       transition: background 0.3s;
+      margin-top: 6px;
     }
     .inner-display.danger { background: #7f1d1d; border: 1px solid #ef4444; }
     .big-metric { font-size: 1.45rem; font-weight: bold; color: #22c55e; }
@@ -153,8 +192,8 @@
 
     .map-wrap {
       position: relative;
-      height: 175px;
-      min-height: 175px;
+      height: 185px;
+      min-height: 185px;
       border-radius: 10px;
       overflow: hidden;
       border: 1px solid #334155;
@@ -173,7 +212,7 @@
       color: #38bdf8;
       padding: 4px 8px;
       border-radius: 6px;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       font-weight: bold;
       border: 1px solid #334155;
     }
@@ -183,6 +222,20 @@
       line-height: 24px;
       filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
     }
+
+    .popup-btn {
+      display: block;
+      width: 100%;
+      margin-top: 5px;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .popup-btn.edit { background: #0284c7; color: #fff; }
+    .popup-btn.del { background: #ef4444; color: #fff; }
 
     .actions {
       display: grid;
@@ -254,7 +307,7 @@
       box-sizing: border-box;
     }
     #builderMap {
-      height: 180px;
+      height: 185px;
       border-radius: 8px;
       border: 1px solid #38bdf8;
       margin: 6px 0;
@@ -269,6 +322,16 @@
       align-items: center;
       font-size: 0.78rem;
       border: 1px solid #334155;
+      gap: 6px;
+    }
+    .mini-actions { display: flex; gap: 4px; }
+    .edit-stop {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 7px;
+      cursor: pointer;
     }
     .del-stop {
       background: #7f1d1d;
@@ -290,14 +353,24 @@
     </div>
   </div>
 
+  <!-- Nivel 1: Empresa y Ruta con botones de edición rápida -->
   <div class="selectors-grid">
-    <select id="empresaSelect" onchange="alCambiarEmpresa()"></select>
-    <select id="rutaSelect" onchange="alCambiarRuta()"></select>
+    <div class="select-with-edit">
+      <select id="empresaSelect" onchange="alCambiarEmpresa()"></select>
+      <button class="btn-mini-edit" title="Editar Empresa" onclick="editarEmpresaActual()">✏️</button>
+    </div>
+    <div class="select-with-edit">
+      <select id="rutaSelect" onchange="alCambiarRuta()"></select>
+      <button class="btn-mini-edit" title="Editar Ruta y Meta" onclick="editarRutaActual()">✏️</button>
+    </div>
   </div>
 
+  <!-- Nivel 2: Turno / Horario + Editar Turno + Borrar Turno + Urbano -->
   <div class="turno-row">
-    <select id="turnoSelect" onchange="alCambiarTurno()" style="margin-bottom:0;"></select>
-    <button class="btn-local-toggle" id="btnEcoLocal" onclick="toggleModoUrbano()">Urbano<br>(4.2 km/L)</button>
+    <select id="turnoSelect" onchange="alCambiarTurno()"></select>
+    <button class="btn-icon-action" title="Editar Nombre o Tipo de Turno" onclick="editarTurnoActual()">✏️</button>
+    <button class="btn-del-turno" title="Eliminar este turno" onclick="eliminarTurnoActual()">🗑️</button>
+    <button class="btn-local-toggle" id="btnEcoLocal" onclick="toggleModoUrbano()">Urbano<br>4.2</button>
   </div>
 
   <div class="status" id="statusText">EN ESPERA DE INICIAR RECORRIDO</div>
@@ -322,12 +395,15 @@
       <span id="panelTituloRuta">LEONI 2 - RUTA 19</span>
       <span class="clock-display">--:--</span>
     </div>
-    <select id="paradaSelect" onchange="actualizarCalculoHorario()" style="margin-bottom:8px;"></select>
+    <div class="select-with-edit">
+      <select id="paradaSelect" onchange="actualizarCalculoHorario()"></select>
+      <button class="btn-mini-edit" title="Editar Paradero Seleccionado" onclick="editarParaderoSeleccionado()">✏️</button>
+    </div>
     <div class="inner-display" id="horarioBox">
       <div style="font-size:0.7rem; color:#94a3b8;" id="subtituloMetric">VELOCIDAD REQUERIDA PARA LLEGAR:</div>
       <div class="big-metric" id="reqSpeed">-- km/h</div>
       <div class="sub-info" id="paceDetail">Inicia recorrido para medir distancia GPS</div>
-      <div class="auto-tag">Cambio automatico de parada activado</div>
+      <div class="auto-tag">Toca o arrastra un punto en el mapa para editarlo</div>
     </div>
   </div>
 
@@ -355,6 +431,7 @@
     <button class="btn reset" onclick="reiniciarViaje()">Reiniciar</button>
   </div>
 
+  <!-- Modal Gestor de Rutas -->
   <div class="modal-overlay" id="modalGestor">
     <div class="modal-box">
       <div class="modal-header">
@@ -363,14 +440,14 @@
       </div>
 
       <div class="form-group">
-        <label>Empresa o Maquiladora (escribe una nueva o usa existente):</label>
+        <label>Empresa o Maquiladora:</label>
         <input type="text" id="newEmpresa" class="form-input" placeholder="Ej. Leoni Planta 2" value="Leoni Planta 2">
       </div>
 
       <div class="selectors-grid">
         <div class="form-group">
           <label>Nombre de la Ruta:</label>
-          <input type="text" id="newRuta" class="form-input" placeholder="Ej. Ruta 19">
+          <input type="text" id="newRuta" class="form-input" placeholder="Ej. Ruta 20">
         </div>
         <div class="form-group">
           <label>Meta Rendimiento (km/L):</label>
@@ -381,7 +458,7 @@
       <div class="selectors-grid">
         <div class="form-group">
           <label>Turno / Horario:</label>
-          <input type="text" id="newTurno" class="form-input" placeholder="Ej. 2do Turno Local 13:15">
+          <input type="text" id="newTurno" class="form-input" placeholder="Ej. 1er Turno Entrada 03:40">
         </div>
         <div class="form-group">
           <label>Tipo de control:</label>
@@ -393,7 +470,7 @@
       </div>
 
       <div style="font-size:0.75rem; color:#38bdf8; font-weight:bold; margin-top:4px;">
-        👆 Toca el mapa abajo para marcar cada parada en orden:
+        👆 Toca el mapa para agregar puntos (arrastra un punto para moverlo):
       </div>
       <div id="builderMap"></div>
       <div id="listaParadasNuevas"></div>
@@ -406,12 +483,6 @@
   </div>
 
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
-  }
-
   const datosPorDefecto = [
     {
       empresa: "Leoni Planta 2",
@@ -457,22 +528,6 @@
               ]
             },
             {
-              nombre: "2do Turno - Entrada Local 13:15",
-              tipo: "entrada",
-              paradas: [
-                { nombre: "Inicio Local 13:15", hora: "13:15", lat: 20.750027, lon: -89.830511, kmFijo: 0 },
-                { nombre: "Leoni Planta 2", hora: "14:15", lat: 20.902213, lon: -89.677656, kmFijo: 26.8 }
-              ]
-            },
-            {
-              nombre: "2do Turno - Entrada Local 14:05",
-              tipo: "entrada",
-              paradas: [
-                { nombre: "Inicio Local 14:05", hora: "14:05", lat: 20.750027, lon: -89.830511, kmFijo: 0 },
-                { nombre: "Leoni Planta 2", hora: "14:45", lat: 20.902213, lon: -89.677656, kmFijo: 26.8 }
-              ]
-            },
-            {
               nombre: "2do Turno - Salida 22:40",
               tipo: "salida",
               paradas: [
@@ -512,6 +567,10 @@
   let builderLayer = null;
   let paradasTemporales = [];
 
+  function guardarCatalogoLocal() {
+    localStorage.setItem('teper_catalogo_v3', JSON.stringify(catalogo));
+  }
+
   function cargarCatalogo() {
     const params = new URLSearchParams(window.location.search);
     const sharedData = params.get('data');
@@ -521,7 +580,7 @@
         const importado = JSON.parse(jsonStr);
         if (Array.isArray(importado) && importado.length > 0) {
           catalogo = importado;
-          localStorage.setItem('teper_catalogo_v2', JSON.stringify(catalogo));
+          guardarCatalogoLocal();
           window.history.replaceState({}, document.title, window.location.pathname);
           alert("✅ ¡Rutas compartidas cargadas automáticamente!");
           return;
@@ -531,7 +590,7 @@
       }
     }
 
-    const guardado = localStorage.getItem('teper_catalogo_v2');
+    const guardado = localStorage.getItem('teper_catalogo_v3');
     if (guardado) {
       try {
         catalogo = JSON.parse(guardado);
@@ -543,7 +602,7 @@
     }
   }
 
-  function poblarSelectores() {
+  function poblarSelectores(keepEmp = 0, keepRuta = 0, keepTurno = 0) {
     const empSel = document.getElementById('empresaSelect');
     empSel.innerHTML = '';
     catalogo.forEach((emp, idx) => {
@@ -552,10 +611,11 @@
       opt.innerText = emp.empresa;
       empSel.appendChild(opt);
     });
-    alCambiarEmpresa();
+    if (catalogo[keepEmp]) empSel.value = keepEmp;
+    alCambiarEmpresa(keepRuta, keepTurno);
   }
 
-  function alCambiarEmpresa() {
+  function alCambiarEmpresa(keepRuta = 0, keepTurno = 0) {
     const empIdx = parseInt(document.getElementById('empresaSelect').value) || 0;
     const rutaSel = document.getElementById('rutaSelect');
     rutaSel.innerHTML = '';
@@ -565,10 +625,11 @@
       opt.innerText = ruta.nombre;
       rutaSel.appendChild(opt);
     });
-    alCambiarRuta();
+    if (catalogo[empIdx].rutas[keepRuta]) rutaSel.value = keepRuta;
+    alCambiarRuta(keepTurno);
   }
 
-  function alCambiarRuta() {
+  function alCambiarRuta(keepTurno = 0) {
     const empIdx = parseInt(document.getElementById('empresaSelect').value) || 0;
     const rutaIdx = parseInt(document.getElementById('rutaSelect').value) || 0;
     const ruta = catalogo[empIdx].rutas[rutaIdx];
@@ -581,20 +642,88 @@
       opt.innerText = turno.nombre;
       turnoSel.appendChild(opt);
     });
+    if (ruta.turnos[keepTurno]) turnoSel.value = keepTurno;
     alCambiarTurno();
   }
 
-  function obtenerTurnoActual() {
+  function obtenerIndicesActuales() {
     const empIdx = parseInt(document.getElementById('empresaSelect').value) || 0;
     const rutaIdx = parseInt(document.getElementById('rutaSelect').value) || 0;
     const turnoIdx = parseInt(document.getElementById('turnoSelect').value) || 0;
+    return { empIdx, rutaIdx, turnoIdx };
+  }
+
+  function obtenerTurnoActual() {
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const empresa = catalogo[empIdx];
     const ruta = empresa.rutas[rutaIdx];
     const turno = ruta.turnos[turnoIdx];
-    return { empresa, ruta, turno };
+    return { empresa, ruta, turno, empIdx, rutaIdx, turnoIdx };
   }
 
-  function alCambiarTurno() {
+  // --- EDICIÓN DE EMPRESA, RUTA, TURNO Y PARADEROS ---
+  function editarEmpresaActual() {
+    const { empresa, empIdx, rutaIdx, turnoIdx } = obtenerTurnoActual();
+    const nuevoNombre = prompt("Editar nombre de la Empresa / Maquiladora:", empresa.empresa);
+    if (!nuevoNombre || !nuevoNombre.trim()) return;
+    empresa.empresa = nuevoNombre.trim();
+    guardarCatalogoLocal();
+    poblarSelectores(empIdx, rutaIdx, turnoIdx);
+  }
+
+  function editarRutaActual() {
+    const { ruta, empIdx, rutaIdx, turnoIdx } = obtenerTurnoActual();
+    const nuevoNombre = prompt("Editar nombre de la Ruta:", ruta.nombre);
+    if (!nuevoNombre || !nuevoNombre.trim()) return;
+    const nuevaMeta = prompt("Editar meta de rendimiento (km/L):", ruta.meta || 4.5);
+    ruta.nombre = nuevoNombre.trim();
+    if (nuevaMeta && !isNaN(parseFloat(nuevaMeta))) {
+      ruta.meta = parseFloat(nuevaMeta);
+    }
+    guardarCatalogoLocal();
+    poblarSelectores(empIdx, rutaIdx, turnoIdx);
+  }
+
+  function editarTurnoActual() {
+    const { turno, empIdx, rutaIdx, turnoIdx } = obtenerTurnoActual();
+    const nuevoNombre = prompt("Editar nombre del Turno / Horario:", turno.nombre);
+    if (!nuevoNombre || !nuevoNombre.trim()) return;
+    const esSalida = confirm(`Tipo de control actual: ${turno.tipo.toUpperCase()}.
+
+Presiona ACEPTAR si es SALIDA (tope 72 km/h) o CANCELAR si es ENTRADA (con hora meta).`);
+    turno.nombre = nuevoNombre.trim();
+    turno.tipo = esSalida ? "salida" : "entrada";
+    guardarCatalogoLocal();
+    poblarSelectores(empIdx, rutaIdx, turnoIdx);
+  }
+
+  function editarParaderoSeleccionado() {
+    const idx = parseInt(document.getElementById('paradaSelect').value) || 0;
+    editarParaderoMapa(idx);
+  }
+
+  function eliminarTurnoActual() {
+    const { empresa, ruta, turno, empIdx, rutaIdx, turnoIdx } = obtenerTurnoActual();
+    if (!confirm(`¿Seguro que deseas eliminar "${turno.nombre}" de ${ruta.nombre}?`)) return;
+
+    ruta.turnos.splice(turnoIdx, 1);
+
+    if (ruta.turnos.length === 0) {
+      empresa.rutas.splice(rutaIdx, 1);
+    }
+    if (empresa.rutas.length === 0) {
+      catalogo.splice(empIdx, 1);
+    }
+    if (catalogo.length === 0) {
+      catalogo = JSON.parse(JSON.stringify(datosPorDefecto));
+    }
+
+    guardarCatalogoLocal();
+    poblarSelectores();
+    alert("🗑️ Turno eliminado.");
+  }
+
+  function alCambiarTurno(keepParadaIdx = null) {
     modoUrbano = false;
     document.getElementById('btnEcoLocal').classList.remove('active');
     document.getElementById('panelHorario').style.display = 'block';
@@ -616,7 +745,12 @@
       opt.innerText = `${idx + 1}. ${p.nombre}${tagHora}`;
       paradaSel.appendChild(opt);
     });
-    if (turno.paradas.length > 1) paradaSel.value = 1;
+
+    if (keepParadaIdx !== null && turno.paradas[keepParadaIdx]) {
+      paradaSel.value = keepParadaIdx;
+    } else if (turno.paradas.length > 1) {
+      paradaSel.value = 1;
+    }
 
     dibujarRutaEnMapa(turno.paradas);
     actualizarCalculoHorario();
@@ -644,8 +778,8 @@
     busIcon = L.divIcon({
       html: '<div class="bus-icon">🚌</div>',
       className: '',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
 
     map = L.map('map').setView([20.55, -89.95], 9);
@@ -660,6 +794,51 @@
     setTimeout(() => map.invalidateSize(), 400);
   }
 
+  function recalcularDistanciasParadas(paradas) {
+    for (let i = 0; i < paradas.length; i++) {
+      if (i === 0) {
+        paradas[i].kmFijo = 0;
+      } else {
+        const d = calcularDistancia(paradas[i-1].lat, paradas[i-1].lon, paradas[i].lat, paradas[i].lon);
+        paradas[i].kmFijo = +(d * 1.15).toFixed(1);
+      }
+    }
+  }
+
+  function editarParaderoMapa(idx) {
+    const { turno } = obtenerTurnoActual();
+    const p = turno.paradas[idx];
+    if (!p) return;
+
+    const nuevoNombre = prompt("Editar nombre del paradero:", p.nombre);
+    if (nuevoNombre === null) return;
+    const nuevaHora = prompt("Editar hora meta (formato 24h, ej. 04:15):", p.hora || "00:00");
+    if (nuevaHora === null) return;
+
+    p.nombre = nuevoNombre.trim() || p.nombre;
+    p.hora = nuevaHora.trim() || p.hora;
+
+    guardarCatalogoLocal();
+    map.closePopup();
+    alCambiarTurno(idx);
+  }
+
+  function eliminarParaderoMapa(idx) {
+    const { turno } = obtenerTurnoActual();
+    if (turno.paradas.length <= 2) {
+      alert("Una ruta debe tener al menos 2 paraderos.");
+      return;
+    }
+    const p = turno.paradas[idx];
+    if (!confirm(`¿Eliminar el paradero "${p.nombre}" de este turno?`)) return;
+
+    turno.paradas.splice(idx, 1);
+    recalcularDistanciasParadas(turno.paradas);
+    guardarCatalogoLocal();
+    map.closePopup();
+    alCambiarTurno(Math.min(idx, turno.paradas.length - 1));
+  }
+
   function dibujarRutaEnMapa(paradas) {
     if (!map || !routeLayer) return;
     routeLayer.clearLayers();
@@ -669,13 +848,36 @@
     const poly = L.polyline(coords, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(routeLayer);
 
     paradas.forEach((p, idx) => {
-      L.circleMarker([p.lat, p.lon], {
-        radius: 5,
-        fillColor: idx === 0 || idx === paradas.length - 1 ? '#22c55e' : '#38bdf8',
-        color: '#0f172a',
-        weight: 2,
-        fillOpacity: 1
-      }).addTo(routeLayer).bindPopup(`<b>${idx + 1}. ${p.nombre}</b><br>Hora: ${p.hora || '--:--'}`);
+      const esExtremo = idx === 0 || idx === paradas.length - 1;
+      const dotIcon = L.divIcon({
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:${esExtremo ? '#22c55e' : '#38bdf8'};border:2px solid #0f172a;box-shadow:0 0 4px #000;"></div>`,
+        className: '',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+
+      const marker = L.marker([p.lat, p.lon], {
+        icon: dotIcon,
+        draggable: true
+      }).addTo(routeLayer);
+
+      marker.bindPopup(`
+        <div style="min-width:145px;color:#0f172a;">
+          <b>${idx + 1}. ${p.nombre}</b><br>
+          Hora: <b>${p.hora || '--:--'}</b>
+          <button class="popup-btn edit" onclick="editarParaderoMapa(${idx})">✏️ Editar Nombre/Hora</button>
+          <button class="popup-btn del" onclick="eliminarParaderoMapa(${idx})">🗑️ Eliminar Paradero</button>
+        </div>
+      `);
+
+      marker.on('dragend', (e) => {
+        const pos = e.target.getLatLng();
+        p.lat = +pos.lat.toFixed(6);
+        p.lon = +pos.lng.toFixed(6);
+        recalcularDistanciasParadas(paradas);
+        guardarCatalogoLocal();
+        alCambiarTurno(idx);
+      });
     });
 
     if (!tracking && coords.length > 0) {
@@ -963,6 +1165,7 @@
     actualizarTotales();
   }
 
+  // --- GESTOR DE EMPRESAS Y RUTAS TOCANDO EL MAPA ---
   function abrirGestor() {
     document.getElementById('modalGestor').style.display = 'block';
     paradasTemporales = [];
@@ -978,18 +1181,14 @@
           const nombre = prompt("Nombre de esta parada (ej. Halacho, Leoni 2):");
           if (!nombre) return;
           const hora = prompt("Hora meta de llegada (formato 24h, ej. 13:45):", "14:00") || "00:00";
-          let kmFijo = 0;
-          if (paradasTemporales.length > 0) {
-            const prev = paradasTemporales[paradasTemporales.length - 1];
-            kmFijo = +(calcularDistancia(prev.lat, prev.lon, e.latlng.lat, e.latlng.lng) * 1.15).toFixed(1);
-          }
           paradasTemporales.push({
             nombre: nombre.trim(),
             hora: hora.trim(),
             lat: +e.latlng.lat.toFixed(6),
             lon: +e.latlng.lng.toFixed(6),
-            kmFijo
+            kmFijo: 0
           });
+          recalcularDistanciasParadas(paradasTemporales);
           renderizarListaParadas();
         });
       } else {
@@ -1003,6 +1202,17 @@
     document.getElementById('modalGestor').style.display = 'none';
   }
 
+  function editarParadaTemp(idx) {
+    const p = paradasTemporales[idx];
+    const nuevoNombre = prompt("Editar nombre de la parada:", p.nombre);
+    if (nuevoNombre === null) return;
+    const nuevaHora = prompt("Editar hora meta (formato 24h):", p.hora);
+    if (nuevaHora === null) return;
+    p.nombre = nuevoNombre.trim() || p.nombre;
+    p.hora = nuevaHora.trim() || p.hora;
+    renderizarListaParadas();
+  }
+
   function renderizarListaParadas() {
     const cont = document.getElementById('listaParadasNuevas');
     cont.innerHTML = '';
@@ -1012,19 +1222,29 @@
     paradasTemporales.forEach((p, idx) => {
       coords.push([p.lat, p.lon]);
       if (builderLayer) {
-        L.circleMarker([p.lat, p.lon], {
-          radius: 6,
-          fillColor: '#22c55e',
-          color: '#000',
-          weight: 2,
-          fillOpacity: 1
-        }).addTo(builderLayer);
+        const dotIcon = L.divIcon({
+          html: `<div style="width:14px;height:14px;border-radius:50%;background:#22c55e;border:2px solid #000;"></div>`,
+          className: '',
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        const m = L.marker([p.lat, p.lon], { icon: dotIcon, draggable: true }).addTo(builderLayer);
+        m.on('dragend', (ev) => {
+          const pos = ev.target.getLatLng();
+          p.lat = +pos.lat.toFixed(6);
+          p.lon = +pos.lng.toFixed(6);
+          recalcularDistanciasParadas(paradasTemporales);
+          renderizarListaParadas();
+        });
       }
 
       const row = document.createElement('div');
       row.className = 'stop-list-item';
       row.innerHTML = `<span><b>${idx + 1}. ${p.nombre}</b> (${p.hora}) - ${p.kmFijo} km</span>
-                       <button class="del-stop" onclick="eliminarParadaTemp(${idx})">X</button>`;
+                       <div class="mini-actions">
+                         <button class="edit-stop" onclick="editarParadaTemp(${idx})">✏️</button>
+                         <button class="del-stop" onclick="eliminarParadaTemp(${idx})">X</button>
+                       </div>`;
       cont.appendChild(row);
     });
 
@@ -1035,6 +1255,7 @@
 
   function eliminarParadaTemp(idx) {
     paradasTemporales.splice(idx, 1);
+    recalcularDistanciasParadas(paradasTemporales);
     renderizarListaParadas();
   }
 
@@ -1074,7 +1295,7 @@
       paradas: paradasTemporales
     });
 
-    localStorage.setItem('teper_catalogo_v2', JSON.stringify(catalogo));
+    guardarCatalogoLocal();
     poblarSelectores();
     cerrarGestor();
     alert(`✅ Ruta "${rutaNombre} - ${turnoNombre}" guardada en ${empNombre}.`);
@@ -1082,7 +1303,7 @@
 
   function restaurarFabrica() {
     if (confirm("¿Restaurar las rutas originales de Leoni Planta 2?")) {
-      localStorage.removeItem('teper_catalogo_v2');
+      localStorage.removeItem('teper_catalogo_v3');
       cargarCatalogo();
       poblarSelectores();
       cerrarGestor();
@@ -1102,6 +1323,10 @@ ${shareUrl}`;
     } catch (e) {
       alert("No se pudo generar el enlace de WhatsApp.");
     }
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
   window.addEventListener('load', () => {
