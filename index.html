@@ -6,8 +6,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0284c7">
-  <title>TEPER VW 15.190 Pro - Control de Rutas</title>
   <link rel="manifest" href="manifest.json">
+  <title>TEPER VW 15.190 Pro - Control de Rutas</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -22,302 +22,56 @@
       min-height: 100vh;
       box-sizing: border-box;
     }
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      gap: 6px;
-    }
-
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 6px; }
     h2 { color: #38bdf8; font-size: 0.92rem; margin: 0; }
-
     .top-tools { display: flex; gap: 5px; }
-    .tool-btn {
-      background: #1e293b;
-      color: #38bdf8;
-      border: 1px solid #334155;
-      padding: 6px 8px;
-      border-radius: 8px;
-      font-size: 0.74rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .tool-btn { background: #1e293b; color: #38bdf8; border: 1px solid #334155; padding: 6px 8px; border-radius: 8px; font-size: 0.74rem; font-weight: bold; cursor: pointer; }
     .tool-btn.share { background: #065f46; color: #6ee7b7; border-color: #059669; }
-
-    .selectors-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-
-    .select-group {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-
-    select {
-      width: 100%;
-      padding: 7px;
-      border-radius: 8px;
-      background: #0f172a;
-      color: #fff;
-      border: 1px solid #475569;
-      font-size: 0.82rem;
-      box-sizing: border-box;
-    }
-
-    .icon-btn {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #475569;
-      border-radius: 8px;
-      padding: 7px 8px;
-      font-size: 0.78rem;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .icon-btn.del {
-      background: #450a0a;
-      color: #fca5a5;
-      border-color: #991b1b;
-    }
-    .icon-btn.fix {
-      background: #0369a1;
-      color: #fff;
-      border-color: #38bdf8;
-      font-weight: bold;
-    }
-
-    .turno-row {
-      display: grid;
-      grid-template-columns: 2.2fr 1fr;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .btn-local-toggle {
-      background: #1e293b;
-      color: #94a3b8;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 5px;
-    }
-    .btn-local-toggle.active {
-      background: #0284c7;
-      color: #fff;
-      border-color: #38bdf8;
-    }
-
-    .status {
-      background: #1e293b;
-      text-align: center;
-      padding: 6px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 0.76rem;
-      margin-bottom: 8px;
-      color: #cbd5e1;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-    .card {
-      background: #1e1e1e;
-      padding: 8px 4px;
-      border-radius: 10px;
-      text-align: center;
-      border: 1px solid #333;
-    }
+    .selectors-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .sel-group { display: flex; gap: 4px; align-items: center; }
+    select { width: 100%; padding: 8px 6px; border-radius: 8px; background: #0f172a; color: #fff; border: 1px solid #475569; font-size: 0.82rem; box-sizing: border-box; }
+    .mini-btn { background: #1e293b; color: #cbd5e1; border: 1px solid #475569; border-radius: 8px; padding: 8px 7px; font-size: 0.78rem; cursor: pointer; flex-shrink: 0; }
+    .mini-btn.del { background: #7f1d1d; color: #fecaca; border-color: #991b1b; }
+    .mini-btn.gps { background: #0369a1; color: #fff; border-color: #38bdf8; font-weight: bold; }
+    .turno-row { display: grid; grid-template-columns: 2.2fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .btn-local-toggle { background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; padding: 6px; }
+    .btn-local-toggle.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+    .status { background: #1e293b; text-align: center; padding: 6px; border-radius: 8px; font-weight: bold; font-size: 0.76rem; margin-bottom: 8px; color: #cbd5e1; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+    .card { background: #1e1e1e; padding: 8px 4px; border-radius: 10px; text-align: center; border: 1px solid #333; }
     .val { font-size: 1.4rem; font-weight: bold; color: #fff; }
     .lbl { font-size: 0.62rem; color: #94a3b8; margin-top: 2px; }
-
-    .panel-box {
-      background: #1e293b;
-      border-radius: 10px;
-      padding: 9px;
-      margin-bottom: 8px;
-      border: 1px solid #334155;
-    }
-    .panel-title {
-      font-size: 0.75rem;
-      color: #38bdf8;
-      font-weight: bold;
-      margin-bottom: 6px;
-      display: flex;
-      justify-content: space-between;
-    }
-    .inner-display {
-      background: #0f172a;
-      padding: 8px;
-      border-radius: 8px;
-      text-align: center;
-      margin-top: 6px;
-      transition: background 0.3s;
-    }
+    .panel-box { background: #1e293b; border-radius: 10px; padding: 9px; margin-bottom: 8px; border: 1px solid #334155; }
+    .panel-title { font-size: 0.75rem; color: #38bdf8; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .inner-display { background: #0f172a; padding: 8px; border-radius: 8px; text-align: center; margin-top: 6px; transition: background 0.3s; }
     .inner-display.danger { background: #7f1d1d; border: 1px solid #ef4444; }
     .big-metric { font-size: 1.4rem; font-weight: bold; color: #22c55e; }
     .sub-info { font-size: 0.76rem; color: #cbd5e1; margin-top: 3px; }
     .auto-tag { font-size: 0.65rem; color: #38bdf8; margin-top: 4px; }
-    .idle-alert {
-      background: #7f1d1d;
-      color: #fecaca;
-      padding: 6px;
-      border-radius: 6px;
-      font-size: 0.74rem;
-      font-weight: bold;
-      margin-top: 6px;
-      display: none;
-    }
-
-    .map-wrap {
-      position: relative;
-      height: 175px;
-      min-height: 175px;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid #334155;
-      margin-bottom: 8px;
-    }
+    .idle-alert { background: #7f1d1d; color: #fecaca; padding: 6px; border-radius: 6px; font-size: 0.74rem; font-weight: bold; margin-top: 6px; display: none; }
+    .map-wrap { position: relative; height: 175px; min-height: 175px; border-radius: 10px; overflow: hidden; border: 1px solid #334155; margin-bottom: 8px; }
     #map { width: 100%; height: 100%; background: #0f172a; }
-    .map-night-filter .leaflet-tile-pane {
-      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-    }
-    .map-badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      z-index: 1000;
-      background: rgba(15, 23, 42, 0.85);
-      color: #38bdf8;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      font-weight: bold;
-      border: 1px solid #334155;
-    }
-    .bus-icon {
-      font-size: 22px;
-      text-align: center;
-      line-height: 24px;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
-    }
-
-    .actions {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 8px;
-      margin-top: auto;
-    }
-    .btn {
-      background: #22c55e;
-      color: #000;
-      border: none;
-      padding: 13px;
-      font-size: 0.96rem;
-      font-weight: bold;
-      border-radius: 10px;
-      cursor: pointer;
-    }
+    .map-night-filter .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+    .map-badge { position: absolute; top: 8px; right: 8px; z-index: 1000; background: rgba(15, 23, 42, 0.85); color: #38bdf8; padding: 4px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: bold; border: 1px solid #334155; }
+    .bus-icon { font-size: 22px; text-align: center; line-height: 24px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8)); }
+    .actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: auto; }
+    .btn { background: #22c55e; color: #000; border: none; padding: 13px; font-size: 0.96rem; font-weight: bold; border-radius: 10px; cursor: pointer; }
     .btn.stop { background: #ef4444; color: #fff; }
     .btn.reset { background: #334155; color: #fff; font-size: 0.86rem; }
-
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.88);
-      z-index: 2000;
-      overflow-y: auto;
-      padding: 14px;
-    }
-    .modal-box {
-      background: #1e293b;
-      border: 1px solid #38bdf8;
-      border-radius: 12px;
-      padding: 14px;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .modal-header h3 { margin: 0; color: #38bdf8; font-size: 0.98rem; }
-    .close-btn {
-      background: #ef4444;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.88); z-index: 2000; overflow-y: auto; padding: 12px; }
+    .modal-box { background: #1e293b; border: 1px solid #38bdf8; border-radius: 12px; padding: 12px; max-width: 480px; margin: 0 auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .modal-header h3 { margin: 0; color: #38bdf8; font-size: 0.96rem; }
+    .close-btn { background: #ef4444; color: #fff; border: none; border-radius: 6px; padding: 5px 10px; font-weight: bold; cursor: pointer; }
     .form-group { margin-bottom: 8px; }
-    .form-group label {
-      display: block;
-      font-size: 0.74rem;
-      color: #cbd5e1;
-      margin-bottom: 3px;
-    }
-    .form-input {
-      width: 100%;
-      padding: 8px;
-      border-radius: 8px;
-      background: #0f172a;
-      color: #fff;
-      border: 1px solid #475569;
-      font-size: 0.84rem;
-      box-sizing: border-box;
-    }
-    #builderMap {
-      height: 175px;
-      border-radius: 8px;
-      border: 1px solid #38bdf8;
-      margin: 6px 0;
-    }
-    .stop-list-item {
-      background: #0f172a;
-      padding: 6px 8px;
-      border-radius: 6px;
-      margin-bottom: 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.76rem;
-      border: 1px solid #334155;
-    }
-    .del-stop {
-      background: #7f1d1d;
-      color: #fecaca;
-      border: none;
-      border-radius: 4px;
-      padding: 3px 7px;
-      cursor: pointer;
-    }
-    .popup-btn {
-      display: block;
-      width: 100%;
-      margin-top: 5px;
-      padding: 5px;
-      border: none;
-      border-radius: 5px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .form-group label { display: block; font-size: 0.74rem; color: #cbd5e1; margin-bottom: 3px; }
+    .form-input { width: 100%; padding: 8px; border-radius: 8px; background: #0f172a; color: #fff; border: 1px solid #475569; font-size: 0.84rem; box-sizing: border-box; }
+    #builderMap { height: 175px; border-radius: 8px; border: 1px solid #38bdf8; margin: 6px 0; }
+    .stop-list-item { background: #0f172a; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; border: 1px solid #334155; }
+    .del-stop { background: #7f1d1d; color: #fecaca; border: none; border-radius: 4px; padding: 3px 7px; cursor: pointer; margin-left: 4px; }
+    .edit-stop { background: #1e3a8a; color: #bfdbfe; border: none; border-radius: 4px; padding: 3px 7px; cursor: pointer; }
+    .popup-btn { background: #0284c7; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; margin-top: 4px; cursor: pointer; width: 100%; }
+    .popup-btn.red { background: #dc2626; }
   </style>
 </head>
 <body>
@@ -330,24 +84,22 @@
     </div>
   </div>
 
-  <!-- Nivel 1: Empresa y Ruta con lápices de edición -->
   <div class="selectors-grid">
-    <div class="select-group">
+    <div class="sel-group">
       <select id="empresaSelect" onchange="alCambiarEmpresa()"></select>
-      <button class="icon-btn" title="Editar empresa" onclick="editarEmpresa()">✏️</button>
+      <button class="mini-btn" title="Editar empresa" onclick="editarEmpresa()">✏️</button>
     </div>
-    <div class="select-group">
+    <div class="sel-group">
       <select id="rutaSelect" onchange="alCambiarRuta()"></select>
-      <button class="icon-btn" title="Editar ruta y meta" onclick="editarRuta()">✏️</button>
+      <button class="mini-btn" title="Editar ruta y meta" onclick="editarRuta()">✏️</button>
     </div>
   </div>
 
-  <!-- Nivel 2: Turno con lápiz, papelera y modo urbano -->
   <div class="turno-row">
-    <div class="select-group">
+    <div class="sel-group">
       <select id="turnoSelect" onchange="alCambiarTurno()"></select>
-      <button class="icon-btn" title="Editar turno" onclick="editarTurno()">✏️</button>
-      <button class="icon-btn del" title="Borrar turno" onclick="eliminarTurnoActual()">🗑️</button>
+      <button class="mini-btn" title="Editar turno" onclick="editarTurno()">✏️</button>
+      <button class="mini-btn del" title="Borrar turno" onclick="borrarTurnoActual()">🗑️</button>
     </div>
     <button class="btn-local-toggle" id="btnEcoLocal" onclick="toggleModoUrbano()">Urbano<br>(4.2 km/L)</button>
   </div>
@@ -369,26 +121,24 @@
     </div>
   </div>
 
-  <!-- Panel Ruta con Horario y botón corto 📍 Fijar -->
   <div class="panel-box" id="panelHorario">
     <div class="panel-title">
       <span id="panelTituloRuta">LEONI 2 - RUTA 19</span>
       <span class="clock-display">--:--</span>
     </div>
-    <div class="select-group">
+    <div class="sel-group">
       <select id="paradaSelect" onchange="actualizarCalculoHorario()"></select>
-      <button class="icon-btn" title="Editar paradero" onclick="editarParaderoSeleccionado()">✏️</button>
-      <button class="icon-btn fix" title="Fijar paradero con GPS actual" onclick="fijarParaderoGPS()">📍 Fijar</button>
+      <button class="mini-btn" title="Editar paradero" onclick="editarParaderoSeleccionado()">✏️</button>
+      <button class="mini-btn gps" title="Fijar paradero con GPS actual" onclick="fijarParaderoGPS()">📍 Fijar</button>
     </div>
     <div class="inner-display" id="horarioBox">
       <div style="font-size:0.7rem; color:#94a3b8;" id="subtituloMetric">VELOCIDAD REQUERIDA PARA LLEGAR:</div>
       <div class="big-metric" id="reqSpeed">-- km/h</div>
       <div class="sub-info" id="paceDetail">Inicia recorrido para medir distancia GPS</div>
-      <div class="auto-tag">Toca un punto en el mapa o usa 📍 Fijar en ruta</div>
+      <div class="auto-tag">Toca un punto en el mapa para editar o arrastrar</div>
     </div>
   </div>
 
-  <!-- Panel Monitor Local Urbano (4.2 km/L) -->
   <div class="panel-box" id="panelCiudad" style="display: none;">
     <div class="panel-title">
       <span>MONITOR LOCAL URBANO (4.2 KM/L)</span>
@@ -413,7 +163,6 @@
     <button class="btn reset" onclick="reiniciarViaje()">Reiniciar</button>
   </div>
 
-  <!-- Modal Creador de Rutas -->
   <div class="modal-overlay" id="modalGestor">
     <div class="modal-box">
       <div class="modal-header">
@@ -429,10 +178,10 @@
       <div class="selectors-grid">
         <div class="form-group">
           <label>Nombre de la Ruta:</label>
-          <input type="text" id="newRuta" class="form-input" placeholder="Ej. Ruta 20">
+          <input type="text" id="newRuta" class="form-input" placeholder="Ej. Ruta 19">
         </div>
         <div class="form-group">
-          <label>Meta Rendimiento (km/L):</label>
+          <label>Meta (km/L):</label>
           <input type="number" step="0.1" id="newMeta" class="form-input" value="4.5">
         </div>
       </div>
@@ -440,7 +189,7 @@
       <div class="selectors-grid">
         <div class="form-group">
           <label>Turno / Horario:</label>
-          <input type="text" id="newTurno" class="form-input" placeholder="Ej. 1er Turno Entrada 03:40">
+          <input type="text" id="newTurno" class="form-input" placeholder="Ej. 1er Turno 03:40">
         </div>
         <div class="form-group">
           <label>Tipo de control:</label>
@@ -452,20 +201,22 @@
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-        <span style="font-size:0.74rem; color:#38bdf8; font-weight:bold;">👆 Toca el mapa o usa tu GPS:</span>
-        <button class="tool-btn" style="background:#0369a1; color:#fff;" onclick="agregarParadaConGPSModal()">📍 Usar mi GPS</button>
+        <span style="font-size:0.74rem; color:#38bdf8; font-weight:bold;">👆 Toca mapa o usa tu GPS:</span>
+        <button class="mini-btn gps" style="padding:5px 8px; font-size:0.74rem;" onclick="agregarParadaConGPSModal()">📍 Usar mi GPS</button>
       </div>
       <div id="builderMap"></div>
-      <div id="listaParadasNuevas" style="max-height:110px; overflow-y:auto;"></div>
+      <div id="listaParadasNuevas"></div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;">
-        <button class="btn" style="padding:10px; font-size:0.84rem;" onclick="guardarNuevaRuta()">💾 Guardar Ruta</button>
-        <button class="btn reset" style="padding:10px; font-size:0.84rem;" onclick="restaurarFabrica()">Restaurar Default</button>
+        <button class="btn" style="padding:10px; font-size:0.85rem;" onclick="guardarNuevaRuta()">💾 Guardar Ruta</button>
+        <button class="btn reset" style="padding:10px; font-size:0.85rem;" onclick="restaurarFabrica()">Restaurar Default</button>
       </div>
     </div>
   </div>
 
 <script>
+  const STORAGE_KEY = 'teper_catalogo_v4';
+
   const datosPorDefecto = [
     {
       empresa: "Leoni Planta 2",
@@ -551,7 +302,7 @@
   let paradasTemporales = [];
 
   function guardarCatalogoLocal() {
-    localStorage.setItem('teper_catalogo_v4', JSON.stringify(catalogo));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(catalogo));
   }
 
   function cargarCatalogo() {
@@ -573,7 +324,7 @@
       }
     }
 
-    const guardado = localStorage.getItem('teper_catalogo_v4');
+    const guardado = localStorage.getItem(STORAGE_KEY);
     if (guardado) {
       try {
         catalogo = JSON.parse(guardado);
@@ -602,13 +353,14 @@
     const empIdx = parseInt(document.getElementById('empresaSelect').value) || 0;
     const rutaSel = document.getElementById('rutaSelect');
     rutaSel.innerHTML = '';
-    catalogo[empIdx].rutas.forEach((ruta, idx) => {
+    const rutas = catalogo[empIdx].rutas;
+    rutas.forEach((ruta, idx) => {
       const opt = document.createElement('option');
       opt.value = idx;
       opt.innerText = ruta.nombre;
       rutaSel.appendChild(opt);
     });
-    rutaSel.value = Math.min(rutaKeep, catalogo[empIdx].rutas.length - 1);
+    rutaSel.value = Math.min(rutaKeep, rutas.length - 1);
     alCambiarRuta(turnoKeep);
   }
 
@@ -629,7 +381,7 @@
     alCambiarTurno();
   }
 
-  function obtenerIndices() {
+  function obtenerIndicesActuales() {
     return {
       empIdx: parseInt(document.getElementById('empresaSelect').value) || 0,
       rutaIdx: parseInt(document.getElementById('rutaSelect').value) || 0,
@@ -638,14 +390,14 @@
   }
 
   function obtenerTurnoActual() {
-    const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const empresa = catalogo[empIdx];
     const ruta = empresa.rutas[rutaIdx];
     const turno = ruta.turnos[turnoIdx];
     return { empresa, ruta, turno };
   }
 
-  function alCambiarTurno() {
+  function alCambiarTurno(paradaKeep = null) {
     modoUrbano = false;
     document.getElementById('btnEcoLocal').classList.remove('active');
     document.getElementById('panelHorario').style.display = 'block';
@@ -667,29 +419,32 @@
       opt.innerText = `${idx + 1}. ${p.nombre}${tagHora}`;
       paradaSel.appendChild(opt);
     });
-    if (turno.paradas.length > 1) paradaSel.value = 1;
+
+    if (paradaKeep !== null && turno.paradas[paradaKeep]) {
+      paradaSel.value = paradaKeep;
+    } else if (turno.paradas.length > 1) {
+      paradaSel.value = 1;
+    }
 
     dibujarRutaEnMapa(turno.paradas);
     actualizarCalculoHorario();
     actualizarTotales();
   }
 
-  // --- EDICIÓN DIRECTA DE EMPRESA, RUTA, TURNO Y PARADEROS ---
   function editarEmpresa() {
-    const { empIdx } = obtenerIndices();
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const actual = catalogo[empIdx].empresa;
-    const nuevo = prompt("Nuevo nombre de la Empresa / Maquiladora:", actual);
-    if (nuevo && nuevo.trim()) {
-      catalogo[empIdx].empresa = nuevo.trim();
-      guardarCatalogoLocal();
-      poblarSelectores(empIdx, obtenerIndices().rutaIdx, obtenerIndices().turnoIdx);
-    }
+    const nuevo = prompt("Nuevo nombre para la empresa:", actual);
+    if (!nuevo || !nuevo.trim()) return;
+    catalogo[empIdx].empresa = nuevo.trim();
+    guardarCatalogoLocal();
+    poblarSelectores(empIdx, rutaIdx, turnoIdx);
   }
 
   function editarRuta() {
-    const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const ruta = catalogo[empIdx].rutas[rutaIdx];
-    const nuevoNombre = prompt("Nuevo nombre de la Ruta:", ruta.nombre);
+    const nuevoNombre = prompt("Nuevo nombre para la ruta:", ruta.nombre);
     if (!nuevoNombre || !nuevoNombre.trim()) return;
     const nuevaMeta = prompt("Meta de rendimiento (km/L):", ruta.meta || 4.5);
     ruta.nombre = nuevoNombre.trim();
@@ -701,118 +456,166 @@
   }
 
   function editarTurno() {
-    const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const turno = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx];
-    const nuevoNombre = prompt("Nuevo nombre del Turno / Horario:", turno.nombre);
+    const nuevoNombre = prompt("Nuevo nombre para el turno:", turno.nombre);
     if (!nuevoNombre || !nuevoNombre.trim()) return;
-    const esSalida = confirm("¿Es ruta de SALIDA (control económico 72 km/h)?
+    const esSalida = confirm(`¿Este turno funciona como SALIDA (tope económico 72 km/h)?
 
 Aceptar = SALIDA
-Cancelar = ENTRADA (con hora meta)");
+Cancelar = ENTRADA (con hora meta)`);
     turno.nombre = nuevoNombre.trim();
-    turno.tipo = esSalida ? "salida" : "entrada";
+    turno.tipo = esSalida ? 'salida' : 'entrada';
     guardarCatalogoLocal();
     poblarSelectores(empIdx, rutaIdx, turnoIdx);
   }
 
-  function eliminarTurnoActual() {
-    const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
+  function borrarTurnoActual() {
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
     const ruta = catalogo[empIdx].rutas[rutaIdx];
-    if (ruta.turnos.length <= 1) {
-      alert("Cada ruta debe tener al menos 1 turno. Puedes editarlo con el lápiz ✏️.");
-      return;
-    }
     const turno = ruta.turnos[turnoIdx];
-    if (confirm(`¿Eliminar "${turno.nombre}" de ${ruta.nombre}?`)) {
-      ruta.turnos.splice(turnoIdx, 1);
-      guardarCatalogoLocal();
-      poblarSelectores(empIdx, rutaIdx, 0);
+
+    if (!confirm(`¿Eliminar "${turno.nombre}"?`)) return;
+
+    ruta.turnos.splice(turnoIdx, 1);
+    if (ruta.turnos.length === 0) {
+      catalogo[empIdx].rutas.splice(rutaIdx, 1);
     }
+    if (catalogo[empIdx].rutas.length === 0) {
+      catalogo.splice(empIdx, 1);
+    }
+    if (catalogo.length === 0) {
+      catalogo = JSON.parse(JSON.stringify(datosPorDefecto));
+    }
+    guardarCatalogoLocal();
+    poblarSelectores(0, 0, 0);
   }
 
-  function editarParaderoPorIndice(idx) {
-    const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
-    const turno = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx];
-    const p = turno.paradas[idx];
+  function editarParaderoPorIndice(pIdx) {
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
+    const paradas = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx].paradas;
+    const p = paradas[pIdx];
     if (!p) return;
+
     const nuevoNombre = prompt("Nombre del paradero:", p.nombre);
-    if (!nuevoNombre || !nuevoNombre.trim()) return;
-    const nuevaHora = prompt("Hora meta/referencia (formato 24h, ej. 04:10):", p.hora || "00:00");
-    p.nombre = nuevoNombre.trim();
-    if (nuevaHora && nuevaHora.trim()) p.hora = nuevaHora.trim();
+    if (nuevoNombre === null) return;
+    const nuevaHora = prompt("Hora meta/referencia (ej. 04:10):", p.hora || "00:00");
+    if (nuevaHora === null) return;
+
+    if (nuevoNombre.trim()) p.nombre = nuevoNombre.trim();
+    p.hora = nuevaHora.trim();
     guardarCatalogoLocal();
-    alCambiarTurno();
-    document.getElementById('paradaSelect').value = idx;
-    actualizarCalculoHorario();
+    alCambiarTurno(pIdx);
   }
 
   function editarParaderoSeleccionado() {
-    const idx = parseInt(document.getElementById('paradaSelect').value) || 0;
-    editarParaderoPorIndice(idx);
+    const pIdx = parseInt(document.getElementById('paradaSelect').value) || 0;
+    editarParaderoPorIndice(pIdx);
   }
 
-  function eliminarParaderoPorIndice(idx) {
-    const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
-    const turno = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx];
-    if (turno.paradas.length <= 2) {
+  function eliminarParaderoPorIndice(pIdx) {
+    const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
+    const paradas = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx].paradas;
+    if (paradas.length <= 2) {
       alert("La ruta debe tener al menos 2 paraderos.");
       return;
     }
-    if (confirm(`¿Eliminar el paradero "${turno.paradas[idx].nombre}"?`)) {
-      turno.paradas.splice(idx, 1);
-      guardarCatalogoLocal();
-      alCambiarTurno();
+    if (!confirm(`¿Eliminar el paradero "${paradas[pIdx].nombre}"?`)) return;
+    paradas.splice(pIdx, 1);
+    recalcularKmFijos(paradas);
+    guardarCatalogoLocal();
+    alCambiarTurno(Math.max(0, pIdx - 1));
+  }
+
+  function recalcularKmFijos(paradas) {
+    for (let i = 0; i < paradas.length; i++) {
+      if (i === 0) {
+        paradas[i].kmFijo = 0;
+      } else {
+        paradas[i].kmFijo = +(calcularDistancia(paradas[i - 1].lat, paradas[i - 1].lon, paradas[i].lat, paradas[i].lon) * 1.15).toFixed(1);
+      }
     }
   }
 
-  // --- FIJAR PARADERO EN TIEMPO REAL CON GPS ACTUAL ---
+  function horaActualHHMM() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
   function fijarParaderoGPS() {
-    const capturar = (lat, lon) => {
-      const ahora = new Date();
-      const horaActual = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
-      const nombre = prompt(`📍 Ubicación GPS capturada (${horaActual}).
-Escribe el nombre del paradero:`);
-      if (!nombre || !nombre.trim()) return;
-
-      const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
-      const turno = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx];
-      let kmFijo = 0;
-      if (turno.paradas.length > 0) {
-        const prev = turno.paradas[turno.paradas.length - 1];
-        kmFijo = +(calcularDistancia(prev.lat, prev.lon, lat, lon) * 1.15).toFixed(1);
-      }
-
-      turno.paradas.push({
-        nombre: nombre.trim(),
-        hora: horaActual,
-        lat: +lat.toFixed(6),
-        lon: +lon.toFixed(6),
-        kmFijo
-      });
-
-      guardarCatalogoLocal();
-      alCambiarTurno();
-      document.getElementById('paradaSelect').value = turno.paradas.length - 1;
-      actualizarCalculoHorario();
-      alert(`✅ Paradero "${nombre.trim()}" (${horaActual}) fijado en la ruta.`);
-    };
-
-    if (currentPos) {
-      capturar(currentPos.lat, currentPos.lon);
-    } else if (navigator.geolocation) {
-      document.getElementById('statusText').innerText = "OBTENIENDO GPS PARA FIJAR PARADERO...";
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          document.getElementById('statusText').innerText = "UBICACION CAPTURADA";
-          capturar(currentPos.lat, currentPos.lon);
-        },
-        () => alert("No se pudo obtener el GPS. Activa la ubicación de tu celular."),
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    } else {
-      alert("Tu navegador no soporta GPS.");
+    if (!navigator.geolocation) {
+      alert("Tu dispositivo no soporta GPS.");
+      return;
     }
+    const status = document.getElementById('statusText');
+    const prevStatus = status.innerText;
+    status.innerText = "OBTENIENDO UBICACION GPS DEL PARADERO...";
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        status.innerText = prevStatus;
+        const lat = +pos.coords.latitude.toFixed(6);
+        const lon = +pos.coords.longitude.toFixed(6);
+        const horaAuto = horaActualHHMM();
+
+        const nombre = prompt(`📍 Ubicación capturada (${horaAuto})
+Escribe un nombre corto para este paradero:`);
+        if (!nombre || !nombre.trim()) return;
+
+        const horaFinal = prompt("Confirma o ajusta la hora meta (formato 24h):", horaAuto) || horaAuto;
+
+        const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
+        const paradas = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx].paradas;
+
+        paradas.push({
+          nombre: nombre.trim(),
+          hora: horaFinal.trim(),
+          lat,
+          lon,
+          kmFijo: 0
+        });
+        recalcularKmFijos(paradas);
+        guardarCatalogoLocal();
+        alCambiarTurno(paradas.length - 1);
+        alert(`✅ Paradero "${nombre.trim()}" guardado en tu posición actual.`);
+      },
+      (err) => {
+        status.innerText = prevStatus;
+        alert("No se pudo obtener el GPS. Verifica que la ubicación esté encendida.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function agregarParadaConGPSModal() {
+    if (!navigator.geolocation) {
+      alert("Tu dispositivo no soporta GPS.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = +pos.coords.latitude.toFixed(6);
+        const lon = +pos.coords.longitude.toFixed(6);
+        const horaAuto = horaActualHHMM();
+        const nombre = prompt(`📍 GPS capturado (${horaAuto})
+Nombre de esta parada:`);
+        if (!nombre || !nombre.trim()) return;
+        const hora = prompt("Hora meta de llegada (formato 24h):", horaAuto) || horaAuto;
+
+        paradasTemporales.push({
+          nombre: nombre.trim(),
+          hora: hora.trim(),
+          lat,
+          lon,
+          kmFijo: 0
+        });
+        recalcularKmFijos(paradasTemporales);
+        renderizarListaParadas();
+        if (builderMap) builderMap.setView([lat, lon], 14);
+      },
+      () => alert("Activa el GPS para capturar tu posición."),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   }
 
   function toggleModoUrbano() {
@@ -836,8 +639,8 @@ Escribe el nombre del paradero:`);
     busIcon = L.divIcon({
       html: '<div class="bus-icon">🚌</div>',
       className: '',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
 
     map = L.map('map').setView([20.55, -89.95], 9);
@@ -861,25 +664,34 @@ Escribe el nombre del paradero:`);
     const poly = L.polyline(coords, { color: '#38bdf8', weight: 4, opacity: 0.85 }).addTo(routeLayer);
 
     paradas.forEach((p, idx) => {
-      const marker = L.marker([p.lat, p.lon], { draggable: true }).addTo(routeLayer);
-      marker.bindPopup(
-        `<b>${idx + 1}. ${p.nombre}</b><br>Hora: ${p.hora || '--:--'}<br><small style="color:#64748b;">(Arrastra el pin para mover)</small>` +
-        `<button class="popup-btn" style="background:#0284c7;color:#fff;" onclick="editarParaderoPorIndice(${idx})">✏️ Editar Nombre/Hora</button>` +
-        `<button class="popup-btn" style="background:#dc2626;color:#fff;" onclick="eliminarParaderoPorIndice(${idx})">🗑️ Eliminar Paradero</button>`
-      );
+      const esExtremo = idx === 0 || idx === paradas.length - 1;
+      const pinIcon = L.divIcon({
+        html: `<div style="width:14px;height:14px;border-radius:50%;background:${esExtremo ? '#22c55e' : '#38bdf8'};border:2px solid #0f172a;box-shadow:0 0 4px #000;"></div>`,
+        className: '',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+
+      const marker = L.marker([p.lat, p.lon], { icon: pinIcon, draggable: true }).addTo(routeLayer);
+      marker.bindPopup(`
+        <div style="min-width:140px;color:#0f172a;">
+          <b>${idx + 1}. ${p.nombre}</b><br>
+          Hora: ${p.hora || '--:--'}<br>
+          <small style="color:#475569;">(Arrastra el punto para mover)</small>
+          <button class="popup-btn" onclick="editarParaderoPorIndice(${idx})">✏️ Editar Nombre/Hora</button>
+          <button class="popup-btn red" onclick="eliminarParaderoPorIndice(${idx})">🗑️ Eliminar Paradero</button>
+        </div>
+      `);
 
       marker.on('dragend', (e) => {
         const pos = e.target.getLatLng();
-        const { empIdx, rutaIdx, turnoIdx } = obtenerIndices();
-        const turno = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx];
-        turno.paradas[idx].lat = +pos.lat.toFixed(6);
-        turno.paradas[idx].lon = +pos.lng.toFixed(6);
-        if (idx > 0) {
-          const prev = turno.paradas[idx - 1];
-          turno.paradas[idx].kmFijo = +(calcularDistancia(prev.lat, prev.lon, pos.lat, pos.lng) * 1.15).toFixed(1);
-        }
+        const { empIdx, rutaIdx, turnoIdx } = obtenerIndicesActuales();
+        const lista = catalogo[empIdx].rutas[rutaIdx].turnos[turnoIdx].paradas;
+        lista[idx].lat = +pos.lat.toFixed(6);
+        lista[idx].lon = +pos.lng.toFixed(6);
+        recalcularKmFijos(lista);
         guardarCatalogoLocal();
-        dibujarRutaEnMapa(turno.paradas);
+        dibujarRutaEnMapa(lista);
         actualizarCalculoHorario();
       });
     });
@@ -1169,7 +981,6 @@ Escribe el nombre del paradero:`);
     actualizarTotales();
   }
 
-  // --- CREADOR DE RUTAS ---
   function abrirGestor() {
     document.getElementById('modalGestor').style.display = 'block';
     paradasTemporales = [];
@@ -1182,50 +993,24 @@ Escribe el nombre del paradero:`);
         builderLayer = L.layerGroup().addTo(builderMap);
 
         builderMap.on('click', (e) => {
-          agregarPuntoTemporal(e.latlng.lat, e.latlng.lng);
+          const nombre = prompt("Nombre de esta parada (ej. Halacho, Leoni 2):");
+          if (!nombre) return;
+          const hora = prompt("Hora meta de llegada (formato 24h, ej. 13:45):", "14:00") || "00:00";
+          paradasTemporales.push({
+            nombre: nombre.trim(),
+            hora: hora.trim(),
+            lat: +e.latlng.lat.toFixed(6),
+            lon: +e.latlng.lng.toFixed(6),
+            kmFijo: 0
+          });
+          recalcularKmFijos(paradasTemporales);
+          renderizarListaParadas();
         });
       } else {
         builderLayer.clearLayers();
         builderMap.invalidateSize();
       }
     }, 200);
-  }
-
-  function agregarPuntoTemporal(lat, lon) {
-    const ahora = new Date();
-    const horaDef = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
-    const nombre = prompt("Nombre de esta parada (ej. Halacho, Leoni 2):");
-    if (!nombre || !nombre.trim()) return;
-    const hora = prompt("Hora meta de llegada (formato 24h):", horaDef) || horaDef;
-    let kmFijo = 0;
-    if (paradasTemporales.length > 0) {
-      const prev = paradasTemporales[paradasTemporales.length - 1];
-      kmFijo = +(calcularDistancia(prev.lat, prev.lon, lat, lon) * 1.15).toFixed(1);
-    }
-    paradasTemporales.push({
-      nombre: nombre.trim(),
-      hora: hora.trim(),
-      lat: +lat.toFixed(6),
-      lon: +lon.toFixed(6),
-      kmFijo
-    });
-    renderizarListaParadas();
-  }
-
-  function agregarParadaConGPSModal() {
-    if (currentPos) {
-      agregarPuntoTemporal(currentPos.lat, currentPos.lon);
-      if (builderMap) builderMap.setView([currentPos.lat, currentPos.lon], 14);
-    } else if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          currentPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          agregarPuntoTemporal(currentPos.lat, currentPos.lon);
-          if (builderMap) builderMap.setView([currentPos.lat, currentPos.lon], 14);
-        },
-        () => alert("Activa el GPS de tu celular para capturar tu ubicación.")
-      );
-    }
   }
 
   function cerrarGestor() {
@@ -1241,11 +1026,12 @@ Escribe el nombre del paradero:`);
     paradasTemporales.forEach((p, idx) => {
       coords.push([p.lat, p.lon]);
       if (builderLayer) {
-        const mk = L.marker([p.lat, p.lon], { draggable: true }).addTo(builderLayer);
-        mk.on('dragend', (e) => {
+        const m = L.marker([p.lat, p.lon], { draggable: true }).addTo(builderLayer);
+        m.on('dragend', (e) => {
           const pos = e.target.getLatLng();
           paradasTemporales[idx].lat = +pos.lat.toFixed(6);
           paradasTemporales[idx].lon = +pos.lng.toFixed(6);
+          recalcularKmFijos(paradasTemporales);
           renderizarListaParadas();
         });
       }
@@ -1253,7 +1039,10 @@ Escribe el nombre del paradero:`);
       const row = document.createElement('div');
       row.className = 'stop-list-item';
       row.innerHTML = `<span><b>${idx + 1}. ${p.nombre}</b> (${p.hora}) - ${p.kmFijo} km</span>
-                       <button class="del-stop" onclick="eliminarParadaTemp(${idx})">X</button>`;
+                       <div>
+                         <button class="edit-stop" onclick="editarParadaTemp(${idx})">✏️</button>
+                         <button class="del-stop" onclick="eliminarParadaTemp(${idx})">X</button>
+                       </div>`;
       cont.appendChild(row);
     });
 
@@ -1262,8 +1051,20 @@ Escribe el nombre del paradero:`);
     }
   }
 
+  function editarParadaTemp(idx) {
+    const p = paradasTemporales[idx];
+    const nuevoNombre = prompt("Nombre de la parada:", p.nombre);
+    if (nuevoNombre === null) return;
+    const nuevaHora = prompt("Hora meta:", p.hora);
+    if (nuevaHora === null) return;
+    if (nuevoNombre.trim()) p.nombre = nuevoNombre.trim();
+    p.hora = nuevaHora.trim();
+    renderizarListaParadas();
+  }
+
   function eliminarParadaTemp(idx) {
     paradasTemporales.splice(idx, 1);
+    recalcularKmFijos(paradasTemporales);
     renderizarListaParadas();
   }
 
@@ -1279,41 +1080,42 @@ Escribe el nombre del paradero:`);
       return;
     }
     if (paradasTemporales.length < 2) {
-      alert("Marca al menos 2 paradas en el mapa o con tu GPS.");
+      alert("Toca el mapa para agregar al menos 2 paradas.");
       return;
     }
 
-    let empObj = catalogo.find(e => e.empresa.toLowerCase() === empNombre.toLowerCase());
-    if (!empObj) {
-      empObj = { empresa: empNombre, rutas: [] };
-      catalogo.push(empObj);
+    let empIdx = catalogo.findIndex(e => e.empresa.toLowerCase() === empNombre.toLowerCase());
+    if (empIdx === -1) {
+      catalogo.push({ empresa: empNombre, rutas: [] });
+      empIdx = catalogo.length - 1;
     }
 
-    let rutaObj = empObj.rutas.find(r => r.nombre.toLowerCase() === rutaNombre.toLowerCase());
-    if (!rutaObj) {
-      rutaObj = { nombre: rutaNombre, meta: metaVal, turnos: [] };
-      empObj.rutas.push(rutaObj);
+    let rutaIdx = catalogo[empIdx].rutas.findIndex(r => r.nombre.toLowerCase() === rutaNombre.toLowerCase());
+    if (rutaIdx === -1) {
+      catalogo[empIdx].rutas.push({ nombre: rutaNombre, meta: metaVal, turnos: [] });
+      rutaIdx = catalogo[empIdx].rutas.length - 1;
     } else {
-      rutaObj.meta = metaVal;
+      catalogo[empIdx].rutas[rutaIdx].meta = metaVal;
     }
 
-    rutaObj.turnos.push({
+    catalogo[empIdx].rutas[rutaIdx].turnos.push({
       nombre: turnoNombre,
       tipo: tipoVal,
       paradas: paradasTemporales
     });
 
+    const turnoIdx = catalogo[empIdx].rutas[rutaIdx].turnos.length - 1;
     guardarCatalogoLocal();
-    poblarSelectores(catalogo.indexOf(empObj), empObj.rutas.indexOf(rutaObj), rutaObj.turnos.length - 1);
+    poblarSelectores(empIdx, rutaIdx, turnoIdx);
     cerrarGestor();
     alert(`✅ Ruta "${rutaNombre} - ${turnoNombre}" guardada en ${empNombre}.`);
   }
 
   function restaurarFabrica() {
-    if (confirm("¿Restaurar las rutas originales limpias de Leoni Planta 2?")) {
-      localStorage.removeItem('teper_catalogo_v4');
+    if (confirm("¿Restaurar las rutas originales de Leoni Planta 2?")) {
+      localStorage.removeItem(STORAGE_KEY);
       cargarCatalogo();
-      poblarSelectores();
+      poblarSelectores(0, 0, 0);
       cerrarGestor();
     }
   }
@@ -1339,7 +1141,7 @@ ${shareUrl}`;
 
   window.addEventListener('load', () => {
     cargarCatalogo();
-    poblarSelectores();
+    poblarSelectores(0, 0, 0);
     actualizarReloj();
     actualizarTemaMapa();
     inicializarMapa();
