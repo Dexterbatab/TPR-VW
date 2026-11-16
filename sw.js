@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teper-vw15190-v7';
+const CACHE_NAME = 'teper-vw15190-v8';
 const urlsToCache = [
   './',
   './index.html',
